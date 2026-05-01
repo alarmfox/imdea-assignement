@@ -18,4 +18,4 @@ tshark -r $1 -T fields \
   -e ip.proto \
   -e tcp.srcport -e tcp.dstport \
   -e udp.srcport -e udp.dstport \
-  -E header=y -E separator=, -E quote=d > ${FILENAME_BASE}.csv
+  -E header=y -E separator=, -E quote=d -o test
