@@ -49,12 +49,17 @@ Reference: [P4 Tutorial VM Setup](https://github.com/p4lang/tutorials/tree/maste
    Execute `analysis.ipynb` until the "Conclusion" section to view distribution fitting (bimodal) and flow metrics.
 
 ### Task 2: In-Network Extraction (P4)
+
 The P4 program implements a 2-port forwarder (Port 0 -> Port 1) with histogram counters for packet sizes.
 The program extract 2 features:
 
 - **packet size**: I use a counter with 2048 entries. I know that entries will never be more than 1500 (max MTU);
-- **flow duration**: I use a counter to store flow index (computed hashing the 5-tuple). I use 2 registers to store the
-first timestamps of the flow and update the last timestamps for each packet;
+- **flow duration**: to track flow durations, I use:
+    + counter to store flow index (computed hashing the 5-tuple).
+    + 3 registers to store:
+      - first timestamp per flow;
+      - last timestamps per flow;
+      - protocol
 
 1. **Truncate Trace**:
    Cut the original dataset to 100k packets for the bmv2 simulation:
