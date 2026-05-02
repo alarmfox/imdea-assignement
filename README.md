@@ -20,11 +20,12 @@ LLMs were used to assist with P4 boilerplate code and documentation structure. A
 ## Setup
 
 ### Python Environment
-Developed with Python 3.14.
-```bash
-python3.14 -m venv .venv
+
+The code has been tested with Python 3.14. To ensure reproducibility users can use [uv]("https://docs.astral.sh/uv/getting-started/installation/"):
+```sh
+uv venv --python 3.14
 source .venv/bin/activate
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 ### P4 Environment
