@@ -3,16 +3,20 @@
 Traffic analysis project for the IMDEA Networks Institute doctoral position. This repo implements software-based statistical analysis and in-network feature extraction using P4.
 
 ## AI Disclosure
-LLMs were used to assist with P4 boilerplate code and documentation structure. All implementations and analysis were manually verified and refined.
+LLMs were used to assist with P4 code and Python plotting scripts.
 
 ## Project Structure
 - `analysis.ipynb`: Statistical analysis, distribution fitting, and Task I vs. Task II results comparison.
+- `dataset/`: contains the small version of the dataset used for the analysis.
+  - `201302011400-100000.dump`: I truncate the original dataset after `100k` packets using `tshark`
+  - `201302011400-100000.csv`: Dataset with flow mapping. Obtained from `scripts/prepare_pcap.py`
+  - `p4_flow_durations.csv` / `p4_packet_sizes.csv`: obtained collecting registers and counters from the data-plane.
 - `monitor.p4_16.p4`: P4 source for the bmv2 switch (packet size tracking).
-- `monitor.py`: Control plane script. Handles traffic injection (`tcpreplay`) and counter collection.
 - `scripts/`:
   - `prepare_pcap.py`: Converts PCAP to CSV with flow aggregation.
   - `veth_setup.sh` / `veth_teardown.sh`: Manage virtual ethernet pairs.
   - `start_switch_grpc.sh`: Launches the BMv2 software switch.
+  - `controller.py`: Control plane script. Handles traffic injection (`tcpreplay`) and counter collection.
 - `Makefile`: Compiles P4 code.
 - `dataset/`: Input traces and generated CSVs.
 - `figures/`: Analysis plots.
@@ -46,6 +50,11 @@ Reference: [P4 Tutorial VM Setup](https://github.com/p4lang/tutorials/tree/maste
 
 ### Task 2: In-Network Extraction (P4)
 The P4 program implements a 2-port forwarder (Port 0 -> Port 1) with histogram counters for packet sizes.
+The program extract 2 features:
+
+- **packet size**: I use a counter with 2048 entries. I know that entries will never be more than 1500 (max MTU);
+- **flow duration**: I use a counter to store flow index (computed hashing the 5-tuple). I use 2 registers to store the
+first timestamps of the flow and update the last timestamps for each packet;
 
 1. **Truncate Trace**:
    Cut the original dataset to 100k packets for the bmv2 simulation:

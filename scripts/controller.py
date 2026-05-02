@@ -28,16 +28,13 @@ p4prog_binary_fname = "monitor.p4_16.json"
 
 # Traffic Injection Config
 TCPREPLAY_IFACE = "veth1"
-TCPREPLAY_PCAP = "201302011400-100000.dump"
-TCPREPLAY_MULTIPLIER = "0.4"
+TCPREPLAY_PCAP = "dataset/201302011400-100000.dump"
+TCPREPLAY_MULTIPLIER = "0.01"
 
 # Output files
 p4_packet_sizes_filename = "dataset/p4_packet_sizes.csv"
+p4_flow_data_filename = "dataset/p4_flow_durations.csv"
 
-# ==============================================================================
-# 3. MAIN EXECUTION
-# ==============================================================================
-# Connect and push the pipeline (Clears the switch memory)
 p4sh.setup(
     device_id=my_dev1_id,
     grpc_addr=my_dev1_addr,
@@ -45,14 +42,16 @@ p4sh.setup(
     config=p4sh.FwdPipeConfig(p4info_txt_fname, p4prog_binary_fname),
 )
 
-print("Connected to the switch. Pipeline loaded and ready.")
+print("Connected to the switch.")
+print(f"pcap={TCPREPLAY_PCAP}, multiplier={TCPREPLAY_MULTIPLIER}")
 
 
-def handle_packet_size(fname: str, counters) -> int:
+def handle_packet_size(fname: str, counters) -> None:
     """
     Extract the packet sizes from the counter
     """
 
+    print("--- Proessing packet size ---")
     total_packets = 0
     with open(fname, mode="w", newline="") as file:
         writer = csv.writer(file)
@@ -65,27 +64,67 @@ def handle_packet_size(fname: str, counters) -> int:
 
             if pkt_count > 0:
                 total_packets += pkt_count
-                print(f"Size {size} bytes: {pkt_count} packets")
                 # Write the data row to the CSV
                 writer.writerow([size, pkt_count])
 
-    return total_packets
+    print(f"--- Processed {total_packets} packets. Data saved to {fname} ---")
 
 
-def read_register_thrift(register_name, port=9090):
-    cmd = (
-        f'echo "register_read {register_name}" | simple_switch_CLI --thrift-port {port}'
-    )
-    result = subprocess.check_output(cmd, shell=True).decode("utf-8")
+def handle_flow_counters(fname: str, thrift_port: int = 9090) -> None:
+    """
+    Retrieves flow timestamps from BMv2 registers via Thrift CLI,
+    calculates duration, and saves the data to a CSV.
+    """
+    print(f"--- Fetching Flow Data via Thrift (Port {thrift_port}) ---")
 
-    # Simple parsing to get values out of the CLI text output
-    values = []
-    for line in result.splitlines():
-        if f"{register_name}[" in line:
-            # Example line: "ingressImpl.flow_start_ts[0]= 1500"
-            val = line.split("=")[-1].strip()
-            values.append(int(val))
-    return values
+    def read_register(register_name: str) -> list:
+        """
+        This function has been generated with the help of an LLM.
+        It runs the thrift CLI to read a register of the BMv2
+        """
+        # Executes the CLI command and captures output
+        cmd = f'echo "register_read {register_name}" | simple_switch_CLI --thrift-port {thrift_port}'
+        try:
+            output = subprocess.check_output(
+                cmd, shell=True, stderr=subprocess.STDOUT
+            ).decode("utf-8")
+
+            # Find the line containing our data
+            # Looking for "register_name= 0, 0, 123, ..."
+            for line in output.splitlines():
+                if f"{register_name}=" in line:
+                    # Split at '=' and take the second part (the numbers)
+                    raw_values = line.split("=")[-1].strip()
+                    # Split by commas and convert to integers
+                    return [
+                        int(val.strip()) for val in raw_values.split(",") if val.strip()
+                    ]
+            return []
+        except Exception as e:
+            print(f"Error parsing register {register_name}: {e}")
+            return []
+
+    # Read the 2 registers
+    start_timestamps = read_register("ingressImpl.flow_start_ts")
+    last_timestamps = read_register("ingressImpl.flow_last_ts")
+
+    # Save flows to CSV
+    active_flows = 0
+    with open(fname, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["flow_index", "start_ts", "last_ts", "duration_us"])
+
+        for idx in range(len(start_timestamps)):
+            start_ts = start_timestamps[idx]
+            last_ts = last_timestamps[idx]
+
+            # Only record indices where traffic was actually seen
+            if start_ts > 0:
+                duration = last_ts - start_ts
+                writer.writerow([idx, start_ts, last_ts, duration])
+                active_flows += 1
+
+    print(f"--- Processed {active_flows} active flows. Data saved to {fname} ---")
 
 
 try:
@@ -110,19 +149,14 @@ try:
     print("--- Packet Size Counter ---")
     counters = p4sh.CounterEntry("ingressImpl.pkt_size_hist").read()
 
-    total_packets = handle_packet_size(p4_packet_sizes_filename, counters)
-
-    print(f"Received {total_packets} packets")
-
-    start_times = read_register_thrift("ingressImpl.flow_start_ts")
-    print(f"Read {len(start_times)} entries.")
-
+    handle_packet_size(p4_packet_sizes_filename, counters)
+    handle_flow_counters(p4_flow_data_filename)
 
 except subprocess.CalledProcessError as e:
-    print(f"\n[!] Error: tcpreplay failed to execute. ({e})")
+    print(f"\n[!] Error: a subprocess failed to execute. ({e})")
 
-except FileNotFoundError:
-    print("\n[!] Error: 'tcpreplay' command not found. Is it installed?")
+except FileNotFoundError as e:
+    print(f"\n[!] Error: 'tcpreplay' command not found. Is it installed? ({e})")
 
 finally:
     p4sh.teardown()
