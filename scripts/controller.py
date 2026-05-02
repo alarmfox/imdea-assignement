@@ -5,9 +5,9 @@ and retrieves the in-network features.
 Run this program with:
     sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py
 """
-
 import csv
 import os
+import re
 import sys
 import subprocess
 import p4runtime_sh.shell as p4sh
@@ -15,16 +15,14 @@ import p4runtime_sh.shell as p4sh
 # Exit if the script is not run as sudo
 if os.geteuid() != 0:
     print("Error: This script requires root privileges to run tcpreplay.")
-    print(
-        " Please re-run using: sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py"
-    )
+    print(" Please re-run using: sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py")
     sys.exit(1)
 
 # Switch Config
 my_dev1_addr = "localhost:9559"
 my_dev1_id = 0
-p4info_txt_fname = "monitor.p4_16.p4info.txtpb"
-p4prog_binary_fname = "monitor.p4_16.json"
+p4info_txt_fname = 'monitor.p4_16.p4info.txtpb'
+p4prog_binary_fname = 'monitor.p4_16.json'
 
 # Traffic Injection Config
 TCPREPLAY_IFACE = "veth1"
@@ -39,7 +37,7 @@ p4sh.setup(
     device_id=my_dev1_id,
     grpc_addr=my_dev1_addr,
     election_id=(0, 1),
-    config=p4sh.FwdPipeConfig(p4info_txt_fname, p4prog_binary_fname),
+    config=p4sh.FwdPipeConfig(p4info_txt_fname, p4prog_binary_fname)
 )
 
 print("Connected to the switch.")
@@ -51,9 +49,9 @@ def handle_packet_size(fname: str, counters) -> None:
     Extract the packet sizes from the counter
     """
 
-    print("--- Proessing packet size ---")
+    print(f"--- Proessing packet size ---")
     total_packets = 0
-    with open(fname, mode="w", newline="") as file:
+    with open(fname, mode='w', newline='') as file:
         writer = csv.writer(file)
         # Write the header row
         writer.writerow(["packet_size", "count"])
@@ -85,69 +83,60 @@ def handle_flow_counters(fname: str, thrift_port: int = 9090) -> None:
         # Executes the CLI command and captures output
         cmd = f'echo "register_read {register_name}" | simple_switch_CLI --thrift-port {thrift_port}'
         try:
-            output = subprocess.check_output(
-                cmd, shell=True, stderr=subprocess.STDOUT
-            ).decode("utf-8")
+            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
 
             # Find the line containing our data
             # Looking for "register_name= 0, 0, 123, ..."
             for line in output.splitlines():
                 if f"{register_name}=" in line:
                     # Split at '=' and take the second part (the numbers)
-                    raw_values = line.split("=")[-1].strip()
+                    raw_values = line.split('=')[-1].strip()
                     # Split by commas and convert to integers
-                    return [
-                        int(val.strip()) for val in raw_values.split(",") if val.strip()
-                    ]
+                    return [int(val.strip()) for val in raw_values.split(',') if val.strip()]
             return []
         except Exception as e:
             print(f"Error parsing register {register_name}: {e}")
             return []
 
-    # Read the 2 registers
-    start_timestamps = read_register("ingressImpl.flow_start_ts")
-    last_timestamps = read_register("ingressImpl.flow_last_ts")
+    # Read the 3 registers
+    starts = read_register("ingressImpl.flow_start_ts")
+    lasts = read_register("ingressImpl.flow_last_ts")
+    protos = read_register("ingressImpl.flow_proto")
+
+    active_flows = 0
 
     # Save flows to CSV
-    active_flows = 0
-    with open(fname, mode="w", newline="") as file:
+    with open(fname, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["flow_index", "start_ts", "last_ts", "duration_us"])
+        writer.writerow(["flow_index", "protocol", "duration_us"])
 
-        for idx in range(len(start_timestamps)):
-            start_ts = start_timestamps[idx]
-            last_ts = last_timestamps[idx]
-
-            # Only record indices where traffic was actually seen
-            if start_ts > 0:
-                duration = last_ts - start_ts
-                writer.writerow([idx, start_ts, last_ts, duration])
-                active_flows += 1
+        for idx, (s, l, p) in enumerate(zip(starts, lasts, protos)):
+            if s > 0:
+                writer.writerow([idx, p, l - s])
 
     print(f"--- Processed {active_flows} active flows. Data saved to {fname} ---")
 
 
 try:
-    print("\n" + "=" * 60)
+    print("\n" + "="*60)
     print(f"Injecting traffic via tcpreplay on {TCPREPLAY_IFACE}...")
 
     # We no longer need 'sudo' in this list because the script itself is running as root
     tcpreplay_cmd = [
         "tcpreplay",
         f"--multiplier={TCPREPLAY_MULTIPLIER}",
-        "-i",
-        TCPREPLAY_IFACE,
-        TCPREPLAY_PCAP,
+        "-i", TCPREPLAY_IFACE,
+        TCPREPLAY_PCAP
     ]
 
     # Execute the command. This blocks until tcpreplay finishes.
     subprocess.run(tcpreplay_cmd, check=True)
     print("Traffic injection complete!")
-    print("=" * 60 + "\n")
+    print("="*60 + "\n")
 
     # Read the counters
     print("--- Packet Size Counter ---")
-    counters = p4sh.CounterEntry("ingressImpl.pkt_size_hist").read()
+    counters = p4sh.CounterEntry('ingressImpl.pkt_size_hist').read()
 
     handle_packet_size(p4_packet_sizes_filename, counters)
     handle_flow_counters(p4_flow_data_filename)
@@ -156,7 +145,7 @@ except subprocess.CalledProcessError as e:
     print(f"\n[!] Error: a subprocess failed to execute. ({e})")
 
 except FileNotFoundError as e:
-    print(f"\n[!] Error: 'tcpreplay' command not found. Is it installed? ({e})")
+    print("\n[!] Error: 'tcpreplay' command not found. Is it installed?")
 
 finally:
     p4sh.teardown()

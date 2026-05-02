@@ -102,16 +102,34 @@ control ingressImpl(inout headers_t hdr,
                     inout metadata_t meta,
                     inout standard_metadata_t stdmeta)
 {
-    // Feature 1: Packet Size Histogram
+    /*
+     * Feature 1: Packet Size Histogram
+     *
+     * Using a counter instead of a register avoids encoding metadata in a custom header.
+     * This is possible assuming that this counter will have a limited number of entries. This
+     * is true since packet size is limited by the MTU (max 1500), as I analyzed in the PCAP
+     */
     counter(2048, CounterType.packets) pkt_size_hist;
 
-    // Feature 2: Flow Tracker (Tracks BOTH packets and bytes)
+    /*
+     * Feature 2: Flow duration tracker
+     *
+     * I use the flow_tracker to count the number of flows (and other metadata).
+     *
+     * For each flow, I record the start time, the last timestamp and the protocol (in 3 registers)
+     */
     counter(65536, CounterType.packets_and_bytes) flow_tracker;
+    register<bit<48>>(65536) flow_start_ts;
+    register<bit<48>>(65536) flow_last_ts;
+    register<bit<8>>(65536) flow_proto;
 
     apply {
         if (hdr.ipv4.isValid()) {
 
-            // 1. Record Packet Size
+            /*
+             * Extract the packet size. Since packets are truncated, I cannot leverage the metadata,
+             * but i need to lock into the ipv4 header and add the size of the ethernet header
+             */
             bit<32> p_size = (bit<32>)hdr.ipv4.totalLen + 14;
             pkt_size_hist.count(p_size);
 
@@ -127,14 +145,30 @@ control ingressImpl(inout headers_t hdr,
                 d_port = hdr.udp.dstPort;
             }
 
-            // 3. Hash the 5-tuple
+            /* Compute the flow ID using the 5-tuple */
             bit<32> flow_idx;
             hash(flow_idx, HashAlgorithm.crc16, (bit<32>)0, {
                 hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.ipv4.protocol, s_port, d_port
             }, (bit<32>)65535);
 
-            // 4. Record the flow
+            /* Count the flow */
             flow_tracker.count(flow_idx);
+            flow_proto.write(flow_idx, hdr.ipv4.protocol);
+
+            /* Update durations registers to track duration */
+            bit<48> current_ts = stdmeta.ingress_global_timestamp;
+            bit<48> first_ts;
+
+            // Read the start timestamp for this flow index
+            flow_start_ts.read(first_ts, flow_idx);
+
+            // If it's 0, this is the first packet of the flow
+            if (first_ts == 0) {
+                flow_start_ts.write(flow_idx, current_ts);
+            }
+
+            // Always update the 'last seen' timestamp
+            flow_last_ts.write(flow_idx, current_ts);
         }
 
         // Blind forward to Port 1
