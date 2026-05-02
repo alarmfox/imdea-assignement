@@ -29,7 +29,7 @@ TCPREPLAY_PCAP = "201302011400-100000.dump"
 TCPREPLAY_MULTIPLIER = "0.4"
 
 # Output files
-p4_packet_sizes_filename = "p4_packet_sizes.csv"
+p4_packet_sizes_filename = "dataset/p4_packet_sizes.csv"
 
 # ==============================================================================
 # 3. MAIN EXECUTION
