@@ -81,7 +81,7 @@ The program extract 2 features:
    ```
 
 4. **Listen on the veth3**:
-   Veth3 is attached to the output interface of the switch. Using the following command, we can 
+   Veth3 is attached to the output interface of the switch. Using the following command, we can
 verify that packets are being forwarded.
    ```bash
    sudo tcpdump -i veth3
@@ -90,7 +90,7 @@ verify that packets are being forwarded.
 5. **Run Monitor & Traffic Injection**:
    In a new terminal:
    ```bash
-   sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py
+   sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 scripts/controller.py
    ```
 
 ## References
