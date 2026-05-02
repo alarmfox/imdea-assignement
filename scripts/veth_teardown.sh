@@ -10,6 +10,11 @@
 #
 # Delete the 4 veth
 
+if [ "$(id -u)" -ne 0 ]; then
+  printf "[ERROR] this script requires root privileges"
+  exit 1
+fi
+
 for idx in 0 1 2 3; do
     intf="veth$(($idx*2))"
     if ip link show $intf &> /dev/null; then

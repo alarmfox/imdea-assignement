@@ -7,8 +7,11 @@
 #
 # https://github.com/p4lang/behavioral-model/blob/master/tools/veth_setup.sh
 
-
 # Create just 4 veth: the switch receives on port 1 and forwards on port 2
+if [ "$(id -u)" -ne 0 ]; then
+  printf "[ERROR] this script requires root privileges"
+  exit 1
+fi
 
 for idx in 0 1 2 3 ; do
     intf0="veth$(($idx*2))"
