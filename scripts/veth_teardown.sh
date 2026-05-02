@@ -8,9 +8,9 @@
 #
 # https://github.com/p4lang/behavioral-model/blob/master/tools/veth_teardown.sh
 #
-# Delete the 2 veth
+# Delete the 4 veth
 
-for idx in 0 1; do
+for idx in 0 1 2 3; do
     intf="veth$(($idx*2))"
     if ip link show $intf &> /dev/null; then
         ip link delete $intf type veth
