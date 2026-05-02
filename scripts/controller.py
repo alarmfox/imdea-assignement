@@ -5,6 +5,7 @@ and retrieves the in-network features.
 Run this program with:
     sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py
 """
+
 import csv
 import os
 import sys
@@ -14,14 +15,16 @@ import p4runtime_sh.shell as p4sh
 # Exit if the script is not run as sudo
 if os.geteuid() != 0:
     print("Error: This script requires root privileges to run tcpreplay.")
-    print(" Please re-run using: sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py")
+    print(
+        " Please re-run using: sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py"
+    )
     sys.exit(1)
 
 # Switch Config
 my_dev1_addr = "localhost:9559"
 my_dev1_id = 0
-p4info_txt_fname = 'monitor.p4_16.p4info.txtpb'
-p4prog_binary_fname = 'monitor.p4_16.json'
+p4info_txt_fname = "monitor.p4_16.p4info.txtpb"
+p4prog_binary_fname = "monitor.p4_16.json"
 
 # Traffic Injection Config
 TCPREPLAY_IFACE = "veth1"
@@ -39,7 +42,7 @@ p4sh.setup(
     device_id=my_dev1_id,
     grpc_addr=my_dev1_addr,
     election_id=(0, 1),
-    config=p4sh.FwdPipeConfig(p4info_txt_fname, p4prog_binary_fname)
+    config=p4sh.FwdPipeConfig(p4info_txt_fname, p4prog_binary_fname),
 )
 
 print("Connected to the switch. Pipeline loaded and ready.")
@@ -51,7 +54,7 @@ def handle_packet_size(fname: str, counters) -> int:
     """
 
     total_packets = 0
-    with open(fname, mode='w', newline='') as file:
+    with open(fname, mode="w", newline="") as file:
         writer = csv.writer(file)
         # Write the header row
         writer.writerow(["packet_size", "count"])
@@ -68,30 +71,51 @@ def handle_packet_size(fname: str, counters) -> int:
 
     return total_packets
 
+
+def read_register_thrift(register_name, port=9090):
+    cmd = (
+        f'echo "register_read {register_name}" | simple_switch_CLI --thrift-port {port}'
+    )
+    result = subprocess.check_output(cmd, shell=True).decode("utf-8")
+
+    # Simple parsing to get values out of the CLI text output
+    values = []
+    for line in result.splitlines():
+        if f"{register_name}[" in line:
+            # Example line: "ingressImpl.flow_start_ts[0]= 1500"
+            val = line.split("=")[-1].strip()
+            values.append(int(val))
+    return values
+
+
 try:
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"Injecting traffic via tcpreplay on {TCPREPLAY_IFACE}...")
 
     # We no longer need 'sudo' in this list because the script itself is running as root
     tcpreplay_cmd = [
         "tcpreplay",
         f"--multiplier={TCPREPLAY_MULTIPLIER}",
-        "-i", TCPREPLAY_IFACE,
-        TCPREPLAY_PCAP
+        "-i",
+        TCPREPLAY_IFACE,
+        TCPREPLAY_PCAP,
     ]
 
     # Execute the command. This blocks until tcpreplay finishes.
     subprocess.run(tcpreplay_cmd, check=True)
     print("Traffic injection complete!")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # Read the counters
     print("--- Packet Size Counter ---")
-    counters = p4sh.CounterEntry('ingressImpl.pkt_size_hist').read()
+    counters = p4sh.CounterEntry("ingressImpl.pkt_size_hist").read()
 
     total_packets = handle_packet_size(p4_packet_sizes_filename, counters)
 
     print(f"Received {total_packets} packets")
+
+    start_times = read_register_thrift("ingressImpl.flow_start_ts")
+    print(f"Read {len(start_times)} entries.")
 
 
 except subprocess.CalledProcessError as e:
