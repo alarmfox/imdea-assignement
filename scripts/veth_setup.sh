@@ -10,7 +10,7 @@
 
 # Create just 2 veth: the switch receives on port 1 and forwards on port 2
 
-for idx in 0 1 ; do
+for idx in 0 1 2 3 ; do
     intf0="veth$(($idx*2))"
     intf1="veth$(($idx*2+1))"
     if ! ip link show $intf0 &> /dev/null; then

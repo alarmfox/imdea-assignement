@@ -102,7 +102,7 @@ control ingressImpl(inout headers_t hdr,
                     inout metadata_t meta,
                     inout standard_metadata_t stdmeta)
 {
-// Feature 1: Packet Size Histogram
+    // Feature 1: Packet Size Histogram
     counter(2048, CounterType.packets) pkt_size_hist;
 
     // Feature 2: Flow Tracker (Tracks BOTH packets and bytes)
@@ -112,7 +112,7 @@ control ingressImpl(inout headers_t hdr,
         if (hdr.ipv4.isValid()) {
 
             // 1. Record Packet Size
-            bit<32> p_size = (bit<32>)stdmeta.packet_length;
+            bit<32> p_size = (bit<32>)hdr.ipv4.totalLen + 14;
             pkt_size_hist.count(p_size);
 
             // 2. Safely extract ports for hashing
@@ -139,7 +139,8 @@ control ingressImpl(inout headers_t hdr,
 
         // Blind forward to Port 1
         stdmeta.egress_spec = 1;
-    }}
+    }
+}
 
 /*
  * Do nothing for egress

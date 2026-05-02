@@ -5,6 +5,7 @@ and retrieves the in-network features.
 Run this program with:
     sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py
 """
+import csv
 import os
 import sys
 import subprocess
@@ -24,9 +25,11 @@ p4prog_binary_fname = 'monitor.p4_16.json'
 
 # Traffic Injection Config
 TCPREPLAY_IFACE = "veth1"
-TCPREPLAY_PCAP = "201302011400.dump"
+TCPREPLAY_PCAP = "201302011400-100000.dump"
 TCPREPLAY_MULTIPLIER = "0.4"
 
+# Output files
+p4_packet_sizes_filename = "p4_packet_sizes.csv"
 
 # ==============================================================================
 # 3. MAIN EXECUTION
@@ -40,6 +43,30 @@ p4sh.setup(
 )
 
 print("Connected to the switch. Pipeline loaded and ready.")
+
+
+def handle_packet_size(fname: str, counters) -> int:
+    """
+    Extract the packet sizes from the counter
+    """
+
+    total_packets = 0
+    with open(fname, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # Write the header row
+        writer.writerow(["packet_size", "count"])
+
+        for c in counters:
+            size = c.index
+            pkt_count = c.data.packet_count
+
+            if pkt_count > 0:
+                total_packets += pkt_count
+                print(f"Size {size} bytes: {pkt_count} packets")
+                # Write the data row to the CSV
+                writer.writerow([size, pkt_count])
+
+    return total_packets
 
 try:
     print("\n" + "="*60)
@@ -62,15 +89,10 @@ try:
     print("--- Packet Size Counter ---")
     counters = p4sh.CounterEntry('ingressImpl.pkt_size_hist').read()
 
-    total_packets = 0
+    total_packets = handle_packet_size(p4_packet_sizes_filename, counters)
 
-    for c in counters:
-        size = c.index
-        pkt_count = c.data.packet_count
+    print(f"Received {total_packets} packets")
 
-        if pkt_count > 0:
-            total_packets += pkt_count
-            print(f"Size {size} bytes: {pkt_count} packets")
 
 except subprocess.CalledProcessError as e:
     print(f"\n[!] Error: tcpreplay failed to execute. ({e})")
