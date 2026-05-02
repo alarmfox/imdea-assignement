@@ -21,7 +21,7 @@ LLMs were used to assist with P4 boilerplate code and documentation structure. A
 
 ### Python Environment
 
-The code has been tested with Python 3.14. To ensure reproducibility users can use [uv]("https://docs.astral.sh/uv/getting-started/installation/"):
+The code has been tested with Python 3.14. To ensure reproducibility users can use [uv](https://docs.astral.sh/uv/getting-started/installation/):
 ```sh
 uv venv --python 3.14
 source .venv/bin/activate
