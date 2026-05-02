@@ -50,7 +50,8 @@ The P4 program implements a 2-port forwarder (Port 0 -> Port 1) with histogram c
 1. **Truncate Trace**:
    Cut the original dataset to 100k packets for the bmv2 simulation:
    ```bash
-   tshark -r <original-pcap> -c 100000 -w 201302011400-100000.dump
+   mkdir dataset
+   tshark -r <original-pcap> -c 100000 -w dataset/201302011400-100000.dump
    ```
    *Note: Ensure the output filename matches `TCPREPLAY_PCAP` in `monitor.py`.*
 
@@ -65,7 +66,14 @@ The P4 program implements a 2-port forwarder (Port 0 -> Port 1) with histogram c
    sudo sh scripts/start_switch_grpc.sh
    ```
 
-4. **Run Monitor & Traffic Injection**:
+4. **Listen on the veth3**:
+   Veth3 is attached to the output interface of the switch. Using the following command, we can 
+verify that packets are being forwarded.
+   ```bash
+   sudo tcpdump -i veth3
+   ```
+
+5. **Run Monitor & Traffic Injection**:
    In a new terminal:
    ```bash
    sudo PATH=$PATH VIRTUAL_ENV=$VIRTUAL_ENV python3 monitor.py
