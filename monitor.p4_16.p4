@@ -159,19 +159,19 @@ control ingressImpl(inout headers_t hdr,
             bit<48> current_ts = stdmeta.ingress_global_timestamp;
             bit<48> first_ts;
 
-            // Read the start timestamp for this flow index
+            /* Read the start timestamp for this flow index */
             flow_start_ts.read(first_ts, flow_idx);
 
-            // If it's 0, this is the first packet of the flow
+            /* If it's 0, this is the first packet of the flow */
             if (first_ts == 0) {
                 flow_start_ts.write(flow_idx, current_ts);
             }
 
-            // Always update the 'last seen' timestamp
+            /* Always update the 'last seen' timestamp */
             flow_last_ts.write(flow_idx, current_ts);
         }
 
-        // Blind forward to Port 1
+        /* Forward always to port 1 */
         stdmeta.egress_spec = 1;
     }
 }
