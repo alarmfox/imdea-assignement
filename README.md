@@ -25,12 +25,19 @@ LLMs were used to assist with P4 code and Python plotting scripts.
 
 ### Python Environment
 
-The code has been tested with Python 3.14. To ensure reproducibility users can use [uv](https://docs.astral.sh/uv/getting-started/installation/):
+The code has been tested with Python 3.14. To ensure reproducibility you can use [uv](https://docs.astral.sh/uv/getting-started/installation/):
 ```sh
 uv venv --python 3.14
 source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
+
+Any relatively new Python version (eg Python 3.11+) will likely work. I am using the following dependencies:
+- jupyter-lab
+- numpy
+- pandas
+- scipy
+- matplotlib
 
 ### P4 Environment
 Requires an Ubuntu 24.04 VM with `bmv2`, `p4c`, `tshark`, and `tcpreplay`.
