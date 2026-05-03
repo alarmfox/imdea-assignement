@@ -51,15 +51,15 @@ Reference: [P4 Tutorial VM Setup](https://github.com/p4lang/tutorials/tree/maste
 ### Task 2: In-Network Extraction (P4)
 
 The P4 program implements a 2-port forwarder (Port 0 -> Port 1) with histogram counters for packet sizes.
-The program extract 2 features:
+The program extract 3 features:
 
 - **packet size**: I use a counter with 2048 entries. I know that entries will never be more than 1500 (max MTU);
 - **flow duration**: to track flow durations, I use:
-    + counter to store flow index (computed hashing the 5-tuple).
     + 3 registers to store:
       - first timestamp per flow;
       - last timestamps per flow;
       - protocol
+- **packet per flow**: counter to store packet_count by flow index (computed hashing the 5-tuple).
 
 1. **Truncate Trace**:
    Cut the original dataset to 100k packets for the bmv2 simulation:
