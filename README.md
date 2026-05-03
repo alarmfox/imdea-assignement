@@ -11,6 +11,7 @@ LLMs were used to assist with P4 code and Python plotting scripts.
   - `201302011400-100000.dump`: I truncate the original dataset after `100k` packets using `tshark`
   - `201302011400-100000.csv`: Dataset with flow mapping. Obtained from `scripts/prepare_pcap.py`
   - `p4_flow_durations.csv` / `p4_packet_sizes.csv`: obtained collecting registers and counters from the data-plane.
+- `doc/`: contains the latex source code for Task 3 discussion.
 - `monitor.p4_16.p4`: P4 source for the bmv2 switch (packet size tracking).
 - `scripts/`:
   - `prepare_pcap.py`: Converts PCAP to CSV with flow aggregation.
@@ -20,6 +21,7 @@ LLMs were used to assist with P4 code and Python plotting scripts.
 - `Makefile`: Compiles P4 code.
 - `dataset/`: Input traces and generated CSVs.
 - `figures/`: Analysis plots.
+- `report.pdf`: contains the produced PDF report for Task 3. It is built from `doc/`
 
 ## Setup
 
