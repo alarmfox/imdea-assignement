@@ -71,7 +71,7 @@ The program extract 3 features:
 - **packet per flow**: counter to store packet_count by flow index (computed hashing the 5-tuple).
 
 1. **Truncate Trace**:
-   Cut the original dataset to 100k packets for the bmv2 simulation:
+   Cut the original dataset to 100k packets for the bmv2 simulation (no need to do since it is already included in `dataset/`):
    ```bash
    mkdir dataset
    tshark -r <original-pcap> -c 100000 -w dataset/201302011400-100000.dump
