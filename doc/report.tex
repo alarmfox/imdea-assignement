@@ -195,7 +195,9 @@ The high volume of ICMP traffic combined with a vast number of incomplete TCP ha
 To identify the source of the potential network scan, I analyzed the traffic profile of individual source IPs\footnote{I know that IP addresses are anonymized, but this analysis leverages the fact that common tools (like `tcpreplay` or `editcap`) use a consistent mapping.
 }. The underlying hypothesis is that a network scanner exhibits a highly asymmetric traffic pattern: it initiates a massive number of connections (flows) to probe ports, but transmits virtually no application data.
 
-To test this, I aggregated the data by Source IP (ip.src)(\cref{fig:top10-ip-flowcount} and \cref{fig:top10-ip-data}) to calculate both the total flow count and the total bytes transmitted per host. By comparing the top 10 most active IPs by flow count against the top 10 IPs by data volume, we can isolate the scanner. Any IP that dominates the flow count but is entirely absent from the top data exchangers is confirmed to be exhibiting scanning behavior.
+To test this, I aggregated the data by Source IP (ip.src) to calculate both the total flow count and the total bytes transmitted per host. By comparing the top 10 most active IPs by flow count against the top 10 IPs by data volume, we can isolate the scanner. Any IP that dominates the flow count but is entirely absent from the top data exchangers is confirmed to be exhibiting scanning behavior.
+
+According to the plots shown below, the suspicious IP is \textbf{195.236.242.78}. It starts the majority of flows (\cref{fig:top10-ip-flowcount}), but it does not appear in the top $10$ data movers (\cref{fig:top10-ip-data}).
 
 \begin{figure}
     \centering
