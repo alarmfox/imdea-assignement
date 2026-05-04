@@ -142,7 +142,7 @@ To further understand the nature of this phenomenon, I classify the flows by pro
     \caption{Flow classification by protocol and bytes sent}
 \end{figure}
 
-Removing the ICMP, noise it is clear that TCP traffic with low duration is \textit{strange}. So I analyzed the TCP flows with less than $4$ packets (as it indicates that the handshaske was not completed). \cref{fig:tcp-durations-flow} shows that the low durations TCP connections are the ones that do not complete handshake. \cref{fig:tcp-broken-perc} shows that $~51\%$ of TCP connections are not valid. This is an indication that there might be a network scan going on.
+Removing the ICMP noise, it is clear that TCP traffic with low duration is \textit{strange}. So I analyzed the TCP flows with less than $4$ packets (as it indicates that the handshaske was not completed). \cref{fig:tcp-durations-flow} shows that the low durations TCP connections are the ones that do not complete handshake. \cref{fig:tcp-broken-perc} shows that $~51\%$ of TCP connections are not valid. This is an indication that there might be a network scan going on.
 
 \begin{figure}
     \centering
